@@ -1,0 +1,15 @@
+{
+  "name": "Magazzino Filamenti 3D",
+  "short_name": "Filamenti3D",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "icons": [
+    {
+      "src": "icon-94.png",
+      "sizes": "94x94",
+      "type": "image/png"
+    }
+  ]
+}
