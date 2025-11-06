@@ -1,22 +1,14 @@
-<!DOCTYPE html><html lang="it"><head><meta charset="windows-1252">
-        
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="theme-color" content="#667eea">
-    </head>
-    <body dir="ltr" spellcheck="false" style="direction: ltr; min-height: 901px;" class="" contenteditable="true">
-        <div class="container">
-            <div class="header">
-                <h1 style="text-align: center;">
-                    <img src="icon-94.png" alt="Logo" style="width:28px; height:28px; vertical-align:middle; margin-right:8px;">
-                    Magazzino Filamenti 3D
-                    <link rel="icon" type="image/png" href="icon-94.png">
-
-                </h1>
-    
-    
-      
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#667eea">
+    <link rel="icon" type="image/png" href="icon-94.png">
+    <link rel="apple-touch-icon" href="icon-94.png">
+    <title>Magazzino Filamenti 3D</title>
     <style>
         * {
             margin: 0;
@@ -437,12 +429,14 @@
             font-size: 14px;
         }
     </style>
-
-
+</head>
+<body>
     <div class="container">
         <div class="header">
-            <h1 style="text-align: center;"><img src="icon-94.png" width="57" height="57">
-                    Magazzino Filamenti 3D</h1>
+            <h1>
+                <img src="icon-94.png" alt="Logo" style="width:28px; height:28px; vertical-align:middle; margin-right:8px;">
+                Magazzino Filamenti 3D
+            </h1>
             <div class="stats">
                 <div class="stat-card">
                     <div class="stat-value" id="totalCount">0</div>
@@ -484,11 +478,11 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Marca *</label>
-                        <input type="text" id="brand" required="" placeholder="es. Prusa, eSun">
+                        <input type="text" id="brand" required placeholder="es. Prusa, eSun">
                     </div>
                     <div class="form-group">
                         <label>Tipo *</label>
-                        <select id="type" required="">
+                        <select id="type" required>
                             <option value="PLA">PLA</option>
                             <option value="PETG">PETG</option>
                             <option value="ABS">ABS</option>
@@ -499,7 +493,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Colore *</label>
-                        <input type="text" id="colorName" required="" placeholder="es. Rosso">
+                        <input type="text" id="colorName" required placeholder="es. Rosso">
                     </div>
                     <div class="form-group">
                         <label>Tonalità</label>
@@ -509,7 +503,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Peso (g) *</label>
-                        <input type="number" id="weight" required="" placeholder="1000" min="0">
+                        <input type="number" id="weight" required placeholder="1000" min="0">
                     </div>
                     <div class="form-group">
                         <label>Diametro</label>
@@ -548,7 +542,7 @@
             </form>
         </div>
 
-        <div id="inventory" class="inventory"><br></div>
+        <div id="inventory" class="inventory"></div>
     </div>
 
     <button class="fab" id="fabButton">➕</button>
@@ -559,10 +553,304 @@
                 <h2>Dettagli Filamento</h2>
                 <button class="close-btn" onclick="closeModal()">✕</button>
             </div>
-            <div id="modalBody"><br></div>
+            <div id="modalBody"></div>
         </div>
     </div>
 
-    
+    <script>
+        let filaments = [];
+        let currentFilter = 'all';
+        let currentSort = 'recent';
 
-</div></div></body></html>
+        function loadFilaments() {
+            const saved = localStorage.getItem('filaments3d');
+            if (saved) {
+                filaments = JSON.parse(saved);
+                renderFilaments();
+                updateStats();
+            }
+        }
+
+        function saveFilaments() {
+            localStorage.setItem('filaments3d', JSON.stringify(filaments));
+            updateStats();
+        }
+
+        function toggleForm() {
+            const form = document.getElementById('addForm');
+            form.classList.toggle('open');
+            if (form.classList.contains('open')) {
+                document.getElementById('brand').focus();
+            }
+        }
+
+        function addOrUpdateFilament(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const editId = document.getElementById('editId').value;
+            const filament = {
+                id: editId ? parseInt(editId) : Date.now(),
+                brand: document.getElementById('brand').value,
+                type: document.getElementById('type').value,
+                colorName: document.getElementById('colorName').value,
+                colorHex: document.getElementById('colorPicker').value,
+                weight: parseInt(document.getElementById('weight').value),
+                diameter: parseFloat(document.getElementById('diameter').value),
+                tempNozzle: document.getElementById('tempNozzle').value || '-',
+                tempBed: document.getElementById('tempBed').value || '-',
+                location: document.getElementById('location').value || 'Non specificata',
+                purchaseDate: document.getElementById('purchaseDate').value || null,
+                notes: document.getElementById('notes').value || '',
+                addedDate: editId ? filaments.find(f => f.id === parseInt(editId)).addedDate : new Date().toISOString()
+            };
+
+            if (editId) {
+                const index = filaments.findIndex(f => f.id === parseInt(editId));
+                if (index !== -1) {
+                    filaments[index] = filament;
+                }
+            } else {
+                filaments.push(filament);
+            }
+
+            saveFilaments();
+            renderFilaments();
+            
+            document.getElementById('filamentForm').reset();
+            document.getElementById('editId').value = '';
+            
+            const form = document.getElementById('addForm');
+            if (form.classList.contains('open')) {
+                form.classList.remove('open');
+            }
+            
+            return false;
+        }
+
+        function editFilament(id) {
+            const filament = filaments.find(f => f.id === id);
+            if (!filament) return;
+
+            document.getElementById('brand').value = filament.brand;
+            document.getElementById('type').value = filament.type;
+            document.getElementById('colorName').value = filament.colorName;
+            document.getElementById('colorPicker').value = filament.colorHex;
+            document.getElementById('weight').value = filament.weight;
+            document.getElementById('diameter').value = filament.diameter;
+            document.getElementById('tempNozzle').value = filament.tempNozzle !== '-' ? filament.tempNozzle : '';
+            document.getElementById('tempBed').value = filament.tempBed !== '-' ? filament.tempBed : '';
+            document.getElementById('location').value = filament.location !== 'Non specificata' ? filament.location : '';
+            document.getElementById('purchaseDate').value = filament.purchaseDate || '';
+            document.getElementById('notes').value = filament.notes;
+            document.getElementById('editId').value = filament.id;
+
+            document.getElementById('addForm').classList.add('open');
+            document.getElementById('brand').focus();
+        }
+
+        function deleteFilament(id) {
+            if (confirm('Sei sicuro di voler eliminare questo filamento?')) {
+                filaments = filaments.filter(f => f.id !== id);
+                saveFilaments();
+                renderFilaments();
+            }
+        }
+
+        function showDetails(id) {
+            const filament = filaments.find(f => f.id === id);
+            if (!filament) return;
+
+            const modal = document.getElementById('detailModal');
+            const body = document.getElementById('modalBody');
+            
+            body.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <span class="type-badge type-${filament.type.toLowerCase()}">${filament.type}</span>
+                        <div class="color-indicator" style="background-color: ${filament.colorHex}"></div>
+                    </div>
+                    
+                    <h3 style="margin-bottom: 15px;">${filament.brand} - ${filament.colorName}</h3>
+                    
+                    <div class="temp-info">
+                        <div class="temp-item">
+                            <div class="info-label">Estrusore</div>
+                            <div class="temp-value">${filament.tempNozzle}°C</div>
+                        </div>
+                        <div class="temp-item">
+                            <div class="info-label">Piatto</div>
+                            <div class="temp-value">${filament.tempBed}°C</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <p><strong>Peso:</strong> ${filament.weight}g</p>
+                        <p><strong>Diametro:</strong> ${filament.diameter}mm</p>
+                        <p><strong>Posizione:</strong> ${filament.location}</p>
+                        ${filament.purchaseDate ? `<p><strong>Acquistato:</strong> ${new Date(filament.purchaseDate).toLocaleDateString('it-IT')}</p>` : ''}
+                        ${filament.notes ? `<p><strong>Note:</strong><br>${filament.notes}</p>` : ''}
+                    </div>
+                </div>
+                <button onclick="closeModal()" style="width: 100%;">Chiudi</button>
+            `;
+            
+            modal.classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('detailModal').classList.remove('open');
+        }
+
+        function filterFilaments() {
+            renderFilaments();
+        }
+
+        function sortFilaments(arr) {
+            switch(currentSort) {
+                case 'name':
+                    return arr.sort((a, b) => a.brand.localeCompare(b.brand));
+                case 'weight':
+                    return arr.sort((a, b) => b.weight - a.weight);
+                case 'type':
+                    return arr.sort((a, b) => a.type.localeCompare(b.type));
+                default:
+                    return arr.sort((a, b) => new Date(b.addedDate) - new Date(a.addedDate));
+            }
+        }
+
+        function renderFilaments() {
+            const container = document.getElementById('inventory');
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            
+            let filtered = filaments.filter(f => {
+                const matchesFilter = currentFilter === 'all' || f.type === currentFilter;
+                const matchesSearch = f.brand.toLowerCase().includes(searchTerm) || 
+                                    f.colorName.toLowerCase().includes(searchTerm) ||
+                                    f.type.toLowerCase().includes(searchTerm);
+                return matchesFilter && matchesSearch;
+            });
+
+            filtered = sortFilaments([...filtered]);
+            
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h2>Nessun filamento trovato</h2>
+                        <p>Aggiungi il tuo primo filamento o modifica i filtri</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(f => {
+                const percentage = Math.min((f.weight / 1000) * 100, 100);
+                const isLowStock = percentage < 20;
+                
+                return `
+                    <div class="filament-card" onclick="showDetails(${f.id})">
+                        ${isLowStock ? '<span class="alert-badge">⚠️ BASSO</span>' : ''}
+                        <div class="card-header">
+                            <span class="type-badge type-${f.type.toLowerCase()}">${f.type}</span>
+                            <div class="color-indicator" style="background-color: ${f.colorHex}"></div>
+                        </div>
+                        
+                        <div class="card-info">
+                            <div class="info-label">Marca</div>
+                            <div class="info-value">${f.brand}</div>
+                        </div>
+                        
+                        <div class="card-info">
+                            <div class="info-label">Colore</div>
+                            <div class="info-value">${f.colorName}</div>
+                        </div>
+                        
+                        <div class="card-info">
+                            <div class="info-label">Peso</div>
+                            <div class="info-value">${f.weight}g (${f.diameter}mm)</div>
+                        </div>
+                        
+                        <div class="weight-bar">
+                            <div class="weight-fill ${isLowStock ? 'low-stock' : ''}" style="width: ${percentage}%">
+                                ${Math.round(percentage)}%
+                            </div>
+                        </div>
+                        
+                        <div class="temp-info">
+                            <div class="temp-item">
+                                <div class="info-label">🌡️ Estrusore</div>
+                                <div class="temp-value">${f.tempNozzle}°C</div>
+                            </div>
+                            <div class="temp-item">
+                                <div class="info-label">🔥 Piatto</div>
+                                <div class="temp-value">${f.tempBed}°C</div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-info" style="margin-top: 10px;">
+                            <div class="info-label">📍 Posizione</div>
+                            <div class="info-value">${f.location}</div>
+                        </div>
+                        
+                        <div class="card-actions" onclick="event.stopPropagation()">
+                            <button class="action-btn edit-btn" onclick="editFilament(${f.id})">✏️ Modifica</button>
+                            <button class="action-btn delete-btn" onclick="deleteFilament(${f.id})">🗑️ Elimina</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('totalCount').textContent = filaments.length;
+            const totalWeight = filaments.reduce((sum, f) => sum + f.weight, 0);
+            document.getElementById('totalWeight').textContent = totalWeight + 'g';
+            const lowStock = filaments.filter(f => (f.weight / 1000 * 100) < 20).length;
+            document.getElementById('lowStock').textContent = lowStock;
+        }
+
+        function exportData() {
+            const dataStr = JSON.stringify(filaments, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `filamenti_3d_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('filamentForm').addEventListener('submit', function(e) {
+            addOrUpdateFilament(e);
+        });
+        
+        document.getElementById('searchBox').addEventListener('input', renderFilaments);
+        
+        document.getElementById('sortSelect').addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            renderFilaments();
+        });
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentFilter = e.target.dataset.filter;
+                renderFilaments();
+            });
+        });
+
+        document.getElementById('detailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailModal') closeModal();
+        });
+
+        document.getElementById('fabButton').addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleForm();
+        });
+        
+        loadFilaments();
+    </script>
+</body>
+</html>
